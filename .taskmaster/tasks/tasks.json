@@ -1,0 +1,157 @@
+{
+  "master": {
+    "tasks": [
+{
+  "id": 1,
+  "title": "Project & Tooling Setup",
+  "description": "Finish bootstrapping the monorepo with core libraries (Supabase and Stripe)",
+  "details": [
+    "Ensure existing Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui packages build and run",
+    "Add libraries:\n  • @supabase/supabase-js\n  • @stripe/stripe-js and stripe (server SDK)",
+    "Add `.env.` containing: SUPABASE_URL, SUPABASE_ANON_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET.",
+    "Create GitHub repo and Vercel project (Production & Preview).",
+  ],
+  "testStrategy": "-",
+  "priority": "high",
+  "dependencies": [],
+  "status": "pending",
+  "subtasks": []
+}
+,
+      {
+        "id": 2,
+        "title": "Supabase Schema, RLS & Anonymous Auth",
+        "description": "Create relational schema for projects/parts, implement anonymous sign-in, quotas enforced by row-level security.",
+        "details": "SQL scripts (supabase/migrations):\n```\ncreate table profiles( id uuid primary key references auth.users(id), role text default 'free');\ncreate table projects( id uuid primary key default gen_random_uuid(), owner uuid references auth.users(id), name text, created_at timestamptz default now());\ncreate table parts( id uuid primary key default gen_random_uuid(), project_id uuid references projects(id) on delete cascade, w_mm int, h_mm int);\n```\nQuotas via RLS:\n```\n-- allow owner read/write within limits\ncreate policy p_project_quota on projects for insert with check (\n  (select count(*) from projects where owner = auth.uid()) < 5\n);\ncreate policy p_part_quota on parts for insert with check (\n  (select count(*) from parts where project_id = new.project_id) < 50\n);\n```\nJS:\n```\nimport { createClient } from '@supabase/supabase-js';\nconst supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {auth:{persistSession:false}});\nawait supabase.auth.signInAnonymously();\n```\nEnable Google Oauth provider.\n",
+        "testStrategy": "• Supabase unit tests using `supabase/cli db reset && psql` to insert rows verifying RLS denies >50 parts.\n• Cypress stubbed session tries to create 51st part and expects 403.\n• Anonymous user receives distinct `anon` user id each incognito session.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Stripe Pass Purchase & Role Promotion",
+        "description": "Integrate Stripe Checkout for 7- & 30-day passes and update Supabase `profiles.role='pro'` via webhook.",
+        "details": "• Create Stripe Products & Prices via dashboard: sku_7d_pass $9.99 /sku_30d_pass $19.99.\n• Server action `/api/checkout`:\n```\nimport Stripe from 'stripe';\nexport async function POST(req){\n const {priceId} = await req.json();\n const session = await stripe.checkout.sessions.create({\n   mode:'payment', line_items:[{price:priceId,quantity:1}],\n   success_url:`${BASE}/account?success`, cancel_url:`${BASE}/pricing`\n });\n return NextResponse.json({url:session.url});\n}\n```\n• Webhook `/api/stripe-hook` validates signature and executes\n```\nif(event.type==='checkout.session.completed'){\n  const {client_reference_id, id} = event.data.object;\n  await supabaseAdmin.from('profiles').update({role:'pro', pass_expires:now()+interval '7 days'}).eq('id',client_reference_id);\n}\n```\n• CRON (Supabase scheduled pg job) nightly sets role back to `free` when `pass_expires < now()`\n",
+        "testStrategy": "• Stripe CLI `stripe trigger checkout.session.completed` -> expect profile row updated.\n• Integration test: purchase flow in test mode, redirected success, account page shows “Pro – expires …”.\n• Unit test webhook signature verification.\n",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Client-side Optimizer Engine",
+        "description": "Implement FFD + Skyline bin-packing in TypeScript producing optimal sheet layouts ≤2s for ≤200 parts.",
+        "details": "Structure:\n```\ninterface Part{ id:string; w:number; h:number; }\ninterface Sheet{ id:string; W:number; H:number; rects:Rect[]; }\nexport function optimize(parts:Part[], sheetSize:{W:number;H:number}):Sheet[]{\n  // 1. sort parts descending by max side (FFD)\n  // 2. iterate parts; try place in existing skyline slots; else new sheet\n  // 3. return sheets with part placements & waste %\n}\n```\nUse Web Worker (`useWorker` hook) to avoid blocking UI; fallback to synchronous if <=50 parts.\nTime budget: `performance.now()` profiling; bail out after 1900 ms with best-so-far.\n",
+        "testStrategy": "• Vitest benchmarks: 200 random parts executes <2000 ms median on M-series Mac.\n• Property tests ensure no overlap & all parts placed.\n• Edge test: rotated square parts, verify same layout.\n",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "/workbench UI & Data Flow",
+        "description": "Create page with inputs, toolbar, live preview wiring inputs→optimizer→visualisation.",
+        "details": "Components:\n• PartsTable – editable rows (id,w,h,qty)\n• SheetSettings – width/height fields\n• Toolbar – ‘Optimize’, ‘Export PDF’, quota meter\n• LayoutPreview – mounts SvgCanvas component\nState flow (Zustand):\n```\nconst useStore=create(()=>({parts:[],sheet:{W:2440,H:1220},layout:[], optimize(){...}}));\n```\nCalls `optimize()` (task 4) in worker, sets `layout`.\nHandles anonymous quota readings from Supabase via RPC `get_usage()`.\n",
+        "testStrategy": "• React Testing Library – enter 3 parts, click Optimize, SVG populated.\n• Playwright: on free tier, try >50 parts and expect upgrade modal.\n• Accessibility: axe-core no violations on page.\n",
+        "priority": "high",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "SVG Layout Visualisation",
+        "description": "Render sheets with rectangles, centred 2-line labels and overall dimensions.",
+        "details": "Component `SvgCanvas`:\n```\nfunction SvgCanvas({sheets}:{sheets:Sheet[]}){\n return (\n  <svg width=\"100%\" viewBox={`0 0 ${sheet.W} ${sheet.H}`}>...</svg>\n );\n}\n```\n• Scale factor so 2440 mm → 800 px max.\n• Each rect: `<rect x y width height class=\"fill-slate-100 stroke-gray-700\"/>`\n• Label: `<text dominant-baseline=\"middle\" text-anchor=\"middle\">ID\\nW×H</text>` using `<tspan>`.\n• Show waste % per sheet bottom-right.\n• Theme with Tailwind. Allow click to highlight part.\n",
+        "testStrategy": "• Snapshot test generated SVG compared to stored fixture.\n• Unit test ensures every `Rect` id in `parts` exists once in DOM.\n• Manual print to ensure 1:1 scaling when exported.\n",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "SVG→PDF Export",
+        "description": "Server action converts current SVG to vector-only A4 landscape PDF using svg2pdf.js.",
+        "details": "• In `/app/api/export/route.ts` read POST body svg string.\n• Use `pdf-lib` + `svg2pdf.js`:\n```\nimport { PDFDocument } from 'pdf-lib';\nimport { svg2pdf } from 'svg2pdf.js';\nconst pdfDoc = await PDFDocument.create();\nconst page = pdfDoc.addPage([842,595]); // A4 landscape in pt\nawait svg2pdf(svgElement, page, { assumePt:true });\nreturn new NextResponse(pdfBytes, {headers:{'Content-Type':'application/pdf'}});\n```\n• Front-end Toolbar button posts SVG, triggers download (`FileSaver.js`).\n",
+        "testStrategy": "• Jest converts small SVG fixture; open with pdf-text-extract and assert labels present.\n• Playwright clicks Export and expects file download size >1 KB and mime `application/pdf`.\n• Print hard-copy, measure scale with ruler (manual QA).\n",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Marketing, Pricing & Blog Pages",
+        "description": "Implement static marketing routes and MDX blog via Contentlayer.",
+        "details": "• Install `contentlayer` and configure in `next.config.js`.\n• Blog posts under `/content/blog/*.mdx` with required front-matter.\n• `BlogIndex` page lists posts, supports `?tag=foo` filter.\n• Landing `/` hero „Start Free“ button links to `/workbench`.\n• Pricing `/pricing` page comparing Free vs Pass, embeds Stripe price IDs from env.\n• Custom 404, privacy, contact markdown.\n",
+        "testStrategy": "• Contentlayer test: build fails if missing front-matter.\n• Lighthouse audit scoring ≥95 for performance & SEO.\n• Playwright navigation `/blog/my-post` renders markdown h1 equal to front-matter title.\n",
+        "priority": "low",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Paywall & Quota Enforcement",
+        "description": "Gate advanced usage; surface ‘Link identity’ and ‘Upgrade’ flows triggered by RLS errors or client counts.",
+        "details": "• `useQuota()` hook reads from Supabase RPC `get_usage()` returning {parts,sheets}.\n• When over limit, show Modal with summary and buttons: ‘Sign-in to save’, ‘Buy Pass’ (opens pricing).\n• In `/account` page display progress bar (parts used /50) or “Unlimited (Pro) until …”.\n• Middleware in Next.js intercepts `/export` for free users with >50 parts -> redirect `/pricing`.\n",
+        "testStrategy": "• Cypress script creates 55 parts -> expects modal.\n• Unit test mocking profile role='pro' bypasses middleware.\n• Supabase RLS denied insert surfaces 42501 error captured and maps to UI banner.\n",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Deployment, Monitoring & Regression Suite",
+        "description": "Automate Vercel deployment, secrets syncing, uptime & regression tests.",
+        "details": "• Vercel project with Environment Variables from GitHub.\n• Enable Preview & Production branches.\n• GitHub Action nightly runs `pnpm playwright test` headless URL from Preview.\n• Add Sentry SDK for front-end error capture.\n• Vercel Analytics route.\n• Synthetic check with `cron-monitor.com` hitting `/` & `/workbench` every 5 min.\n",
+        "testStrategy": "• Merge to `main` triggers Vercel build passing.\n• Synthetic fails page → Slack alert.\n• Sentry test error appears in dashboard.\n• Regression suite green in CI before deploy.\n",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-04T15:03:04.255Z",
+      "updated": "2025-07-04T15:03:04.255Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

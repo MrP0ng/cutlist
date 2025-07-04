@@ -1,0 +1,75 @@
+# Cut-Planner — Product Requirements Document (v1.4)
+_Last updated: **4 Jul 2025**_
+
+---
+
+## 1 Purpose & Vision
+Cut-Planner is a fast, no-friction web app for generating optimal cutting layouts (sheet goods first, linear stock later). Hobbyists can jump in without an account; pros can unlock higher limits with affordable passes.
+
+**MVP pillars**
+
+* **Zero-signup entry** (start typing → see layout)  
+* **Clear, printable diagrams** (SVG + PDF)  
+* **Generous free tier, pay-per-project model**
+
+---
+
+## 2 Goals & Success Metrics
+
+| Goal                     | Metric                                 | Target (90 days post-launch) |
+|--------------------------|----------------------------------------|------------------------------|
+| Acquire hobbyist users   | New anonymous sessions / week          | ≥ 400 |
+| Convert to accounts      | Guest → linked-identity rate           | ≥ 25 % |
+| Convert pros             | 7- & 30-day passes sold / week         | ≥ 25 |
+| Retain                   | Returning users (30-day)               | ≥ 35 % |
+| Delight                  | Net Promoter Score                     | ≥ 50 |
+
+---
+
+## 3 Personas
+
+| Persona            | Snapshot                   | Key Needs |
+|--------------------|----------------------------|-----------|
+| **Helen Hobbyist** | Occasional DIYer           | Free, simple planning; printable PDF |
+| **Carlos Carpenter** | Two-person cabinet shop | Larger projects; labels; waste % |
+
+---
+
+## 4 Scope (MVP)
+
+| Area               | Details |
+|--------------------|---------|
+| **Auth & Data**    | • Auto anonymous sign-in (`signInAnonymously`)  \
+                     • Free quota via RLS: **≤ 50 parts OR 5 sheets**  \
+                     • “Link identity” (Google OAuth / magic-link) on **Save** / quota-hit  \
+                     • Stripe passes: **7-day $9.99**, **30-day $19.99** → `role='pro'`, quotas lifted |
+| **Optimizer**      | Client-side TS (FFD + Skyline); ≤ 200 parts → layout in ≤ 2 s |
+| **Visualization**  | SVG rectangles, 2-line centred labels (`ID` + `W×H mm`), overall sheet dimensions |
+| **Export**         | Server action + `svg2pdf.js`; A4 landscape, vector only |
+| **Content**        | Landing + blog in repo as MDX (Contentlayer) — front-matter: `title`, `date`, `slug`, `draft`, `tags` |
+| **Pricing**        | Free tier; 7- & 30-day passes (subscriptions deferred) |
+| **Stack**          | Next.js (App Router) · TypeScript · Tailwind + shadcn/ui · Supabase · Stripe · Vercel |
+| **Out of scope**   | i18n, drag-editing, DXF/CNC, inventory, real-time collab, SaaS CMS, auto-save |
+
+---
+
+## 5 Information Architecture & Page Map
+
+| Route            | Purpose                                | Key Components |
+|------------------|----------------------------------------|----------------|
+| **/**            | Marketing landing                      | Hero, benefits, “Start free” → `/workbench`, pricing & blog teasers |
+| **/workbench**   | **Cut-list optimizer workspace**       | Header, Inputs ↔ Preview layout, toolbar |
+| **/pricing**     | Free vs passes                         | Comparison table, Stripe buttons |
+| **/blog**        | Article index (“Useful articles”)      | Tag filters, summaries |
+| **/blog/[slug]** | Article detail                         | MDX content |
+| **/login** (modal)| Magic-link / Google sign-in           | OAuth buttons, email field |
+| **/account**     | Pass status & saved projects           | Quota meter, renew pass |
+| **/404**         | Friendly lost-sheet page               | Link home |
+
+Static: `/privacy`, `/contact` linked from footer.
+
+---
+
+## 6 Global Shell
+
+### 6.1 Header (sticky)

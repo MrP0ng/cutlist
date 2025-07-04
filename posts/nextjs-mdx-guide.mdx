@@ -1,0 +1,133 @@
+---
+title: "Getting Started with Next.js and MDX"
+date: "2025-07-02"
+excerpt: "Learn how to set up a blog with Next.js 15 and MDX. This guide covers everything from installation to deployment."
+author: "Your Name"
+tags: ["nextjs", "mdx", "tutorial", "web-development"]
+---
+
+# Getting Started with Next.js and MDX
+
+Next.js 15 brings amazing improvements for content-driven websites. Combined with MDX, you can create powerful, interactive blog posts that go beyond traditional Markdown.
+
+## Why Choose Next.js + MDX?
+
+### Performance Benefits
+
+Next.js provides:
+- **Static Site Generation (SSG)** for lightning-fast load times
+- **Automatic code splitting** for optimal bundle sizes
+- **Image optimization** out of the box
+- **Built-in SEO** features
+
+[google](/post)
+### Developer Experience
+
+MDX offers:
+- **Component integration** - Use React components in your content
+- **Syntax highlighting** for code blocks
+- **Frontmatter support** for metadata
+- **TypeScript compatibility**
+
+## Setting Up Your Project
+
+Here's how to get started:
+
+```bash
+# Create a new Next.js project
+npx create-next-app@latest my-blog --typescript --tailwind --eslint
+
+# Install MDX dependencies
+npm install @next/mdx @mdx-js/loader @mdx-js/react
+```
+
+## Project Structure
+
+Your blog should follow this structure:
+
+```
+my-blog/
+├── app/
+│   ├── post/
+│   │   └── [slug]/
+│   │       └── page.tsx
+│   └── layout.tsx
+├── posts/
+│   ├── post-1.mdx
+│   └── post-2.mdx
+├── lib/
+│   └── posts.ts
+└── mdx-components.tsx
+```
+
+## Advanced Features
+
+### Custom Components
+
+You can create custom components for your MDX files:
+
+```tsx
+function CalloutBox({ children, type = "info" }) {
+  const styles = {
+    info: "border-blue-200 bg-blue-50 text-blue-800",
+    warning: "border-yellow-200 bg-yellow-50 text-yellow-800",
+    error: "border-red-200 bg-red-50 text-red-800"
+  };
+
+  return (
+    <div className={`border-l-4 p-4 rounded ${styles[type]}`}>
+      {children}
+    </div>
+  );
+}
+```
+
+And you can even use existing UI components from your design system directly in your MDX content:
+
+<div className="my-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+  <p className="mb-4 text-gray-700 dark:text-gray-300">
+    Want to see this in action? Try clicking the button below to visit the cut page!
+  </p>
+  <Link href="/cut">
+    <Button variant="default" size="lg">
+      Visit Cut Page
+    </Button>
+  </Link>
+</div>
+
+### SEO Optimization
+
+Each post automatically generates:
+- Meta titles and descriptions
+- Open Graph tags
+- Structured data
+- Canonical URLs
+
+## Best Practices
+
+1. **Keep posts organized** - Use meaningful filenames
+2. **Add frontmatter** - Always include title, date, and excerpt
+3. **Optimize images** - Use Next.js Image component
+4. **Test performance** - Use Lighthouse and Core Web Vitals
+
+## Conclusion
+
+This setup gives you a powerful, modern blog that's fast, SEO-friendly, and developer-friendly. The combination of Next.js and MDX provides the perfect balance between simplicity and functionality.
+
+<div className="flex gap-4 my-6">
+  <Link href="/cut">
+    <Button variant="default">
+      Get Started
+    </Button>
+  </Link>
+  <Link href="/post">
+    <Button variant="outline">
+      View All Posts
+    </Button>
+  </Link>
+  <Button variant="secondary" size="sm">
+    View Examples
+  </Button>
+</div>
+
+Happy blogging! 🚀
