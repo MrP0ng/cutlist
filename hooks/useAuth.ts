@@ -23,26 +23,33 @@ export function useAuth() {
   const [usage, setUsage] = useState<UsageData | null>(null)
 
   useEffect(() => {
-    // Initialize authentication
-    initializeAuth()
-      .then((user) => {
-        setUser(user)
-        if (user) {
-          // Load usage data
-          return getUsage()
-        }
-      })
-      .then((usageData) => {
-        if (usageData) {
+    // First check if there's already a session
+    const checkSession = async () => {
+      try {
+        const { data: { user: existingUser } } = await supabase.auth.getUser()
+        
+        if (existingUser) {
+          // User is already signed in
+          setUser(existingUser)
+          const usageData = await getUsage()
           setUsage(usageData)
+        } else {
+          // No existing session, initialize anonymous auth
+          const anonymousUser = await initializeAuth()
+          setUser(anonymousUser)
+          if (anonymousUser) {
+            const usageData = await getUsage()
+            setUsage(usageData)
+          }
         }
-      })
-      .catch((error) => {
-        console.error('Error initializing auth:', error)
-      })
-      .finally(() => {
+      } catch (error) {
+        console.error('Error checking session:', error)
+      } finally {
         setLoading(false)
-      })
+      }
+    }
+
+    checkSession()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

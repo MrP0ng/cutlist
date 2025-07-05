@@ -13,6 +13,7 @@ function AccountContent() {
   const searchParams = useSearchParams();
   const [showSuccess, setShowSuccess] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('success')) {
@@ -22,6 +23,17 @@ function AccountContent() {
       return () => clearTimeout(timer);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    // Set a timeout for loading state
+    const timer = setTimeout(() => {
+      if (loading) {
+        setLoadingTimeout(true);
+      }
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleSignOut = async () => {
     try {
@@ -38,6 +50,19 @@ function AccountContent() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading account information...</p>
+          {loadingTimeout && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md">
+              <p className="text-sm text-yellow-800">
+                Taking longer than expected. If this continues, try refreshing the page.
+              </p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-2 text-blue-600 underline text-sm"
+              >
+                Refresh Page
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

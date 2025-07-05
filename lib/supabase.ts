@@ -74,24 +74,24 @@ export interface Database {
         Row: {
           id: string
           project_id: string
-          w_mm: number
-          h_mm: number
+          width_mm: number
+          height_mm: number
           qty: number
           label: string | null
         }
         Insert: {
           id?: string
           project_id: string
-          w_mm: number
-          h_mm: number
+          width_mm: number
+          height_mm: number
           qty?: number
           label?: string | null
         }
         Update: {
           id?: string
           project_id?: string
-          w_mm?: number
-          h_mm?: number
+          width_mm?: number
+          height_mm?: number
           qty?: number
           label?: string | null
         }
@@ -129,10 +129,11 @@ export const supabase = createClient<Database>(
   }
 )
 
-// Initialize anonymous authentication
+// Initialize authentication - check for existing session first
 export async function initializeAuth() {
   const { data: { user } } = await supabase.auth.getUser()
   
+  // Only create anonymous user if no session exists
   if (!user) {
     const { data, error } = await supabase.auth.signInAnonymously()
     if (error) {
