@@ -123,8 +123,8 @@ export const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     auth: {
-      persistSession: false, // New anonymous session each tab
-      autoRefreshToken: false,
+      persistSession: true, // Keep sessions across browser refreshes
+      autoRefreshToken: true, // Auto refresh tokens
     },
   }
 )
