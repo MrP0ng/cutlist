@@ -1,4 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cutlist",
-  description: "A modern blog and application built with Next.js and MDX",
+  title: "Cutlist - Optimize Your Sheet Cutting Layouts",
+  description: "Professional cut list optimization tool. Maximize material usage and minimize waste with intelligent layout algorithms.",
 };
 
 export default function RootLayout({
@@ -34,7 +36,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </ThemeProvider>
       </body>
     </html>
