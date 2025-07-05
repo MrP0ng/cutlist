@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/navigation-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { AuthModal } from '@/components/auth-modal';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
@@ -19,6 +21,7 @@ import { Menu } from 'lucide-react';
 export function Header() {
   const pathname = usePathname();
   const { user, isPro } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Hide header on workbench route
   if (pathname === '/workbench') {
@@ -80,9 +83,9 @@ export function Header() {
               </Link>
             </div>
           ) : (
-            <Link href="/account">
-              <Button size="sm">Sign In</Button>
-            </Link>
+            <Button size="sm" onClick={() => setAuthModalOpen(true)}>
+              Sign In
+            </Button>
           )}
         </div>
 
@@ -126,17 +129,18 @@ export function Header() {
                     </Link>
                   </div>
                 ) : (
-                  <Link href="/account">
-                    <Button size="sm" className="w-full">
-                      Sign In
-                    </Button>
-                  </Link>
+                  <Button size="sm" className="w-full" onClick={() => setAuthModalOpen(true)}>
+                    Sign In
+                  </Button>
                 )}
               </div>
             </div>
           </SheetContent>
         </Sheet>
       </div>
+      
+      {/* Auth Modal */}
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </header>
   );
 }

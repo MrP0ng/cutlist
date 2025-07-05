@@ -172,6 +172,23 @@ export async function signInWithGoogle() {
   return data
 }
 
+// Sign in with email magic link (passwordless)
+export async function signInWithEmail(email: string) {
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+  
+  if (error) {
+    console.error('Error sending magic link:', error)
+    throw error
+  }
+  
+  return data
+}
+
 // Sign out
 export async function signOut() {
   const { error } = await supabase.auth.signOut()

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { 
-  ChevronLeft, 
-  ChevronRight, 
+  ChevronUp, 
+  ChevronDown, 
   BarChart3, 
   Layers 
 } from 'lucide-react'
@@ -21,6 +21,7 @@ import { demoPartsSet1, demoPartsSet2 } from '@/lib/demoParts'
 
 export function SheetArea() {
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   
   // Demo data - will come from optimizer results later
   const demoSheets = [
@@ -42,15 +43,32 @@ export function SheetArea() {
     }
   ]
 
-  const currentSheet = demoSheets[currentSheetIndex]
   const hasMultipleSheets = demoSheets.length > 1
 
+  const scrollToSheet = (index: number) => {
+    if (scrollContainerRef.current && index >= 0 && index < demoSheets.length) {
+      const container = scrollContainerRef.current
+      const sheets = container.querySelectorAll('[data-sheet-index]')
+      const targetSheet = sheets[index] as HTMLElement
+      
+      if (targetSheet) {
+        targetSheet.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        })
+        setCurrentSheetIndex(index)
+      }
+    }
+  }
+
   const nextSheet = () => {
-    setCurrentSheetIndex((prev) => (prev + 1) % demoSheets.length)
+    const nextIndex = Math.min(currentSheetIndex + 1, demoSheets.length - 1)
+    scrollToSheet(nextIndex)
   }
 
   const prevSheet = () => {
-    setCurrentSheetIndex((prev) => (prev - 1 + demoSheets.length) % demoSheets.length)
+    const prevIndex = Math.max(currentSheetIndex - 1, 0)
+    scrollToSheet(prevIndex)
   }
 
   // Calculate summary stats
@@ -88,14 +106,14 @@ export function SheetArea() {
               <div className="flex items-center justify-between px-4 pb-4">
                 <div className="flex items-center gap-4">
                   <h3 className="text-lg font-semibold">
-                    Sheet {currentSheetIndex + 1} of {totalSheets}
+                    Sheet {currentSheetIndex + 1} of {demoSheets.length}
                   </h3>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">
-                      {currentSheet.W} × {currentSheet.H} mm
+                      {demoSheets[currentSheetIndex].W} × {demoSheets[currentSheetIndex].H} mm
                     </Badge>
-                    <Badge variant={currentSheet.waste <= 10 ? 'default' : 'secondary'}>
-                      {currentSheet.waste.toFixed(1)}% waste
+                    <Badge variant={demoSheets[currentSheetIndex].waste <= 10 ? 'default' : 'secondary'}>
+                      {demoSheets[currentSheetIndex].waste.toFixed(1)}% waste
                     </Badge>
                   </div>
                 </div>
@@ -108,7 +126,7 @@ export function SheetArea() {
                       onClick={prevSheet}
                       disabled={currentSheetIndex === 0}
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronUp className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
@@ -116,21 +134,40 @@ export function SheetArea() {
                       onClick={nextSheet}
                       disabled={currentSheetIndex === demoSheets.length - 1}
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronDown className="h-4 w-4" />
                     </Button>
                   </div>
                 )}
               </div>
 
-              {/* SVG Display */}
+              {/* Vertical Scrolling SVG Display */}
               <div className="flex-1 px-4 pb-4">
-                <div className="bg-muted/30 rounded-lg p-4 h-full flex items-center justify-center">
-                  <SheetSvg 
-                    parts={currentSheet.parts}
-                    sheetW={currentSheet.W}
-                    sheetH={currentSheet.H}
-                    kerf={3}
-                  />
+                <div 
+                  ref={scrollContainerRef}
+                  className="h-full overflow-y-auto snap-y snap-mandatory overflow-x-hidden"
+                >
+                  {demoSheets.map((sheet, index) => (
+                    <section 
+                      key={sheet.id}
+                      data-sheet-index={index}
+                      className="h-fit snap-start mb-8 last:mb-0"
+                    >
+                      <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-center min-h-[400px] overflow-hidden">
+                        <div className="mx-auto">
+                          <SheetSvg 
+                            parts={sheet.parts}
+                            sheetW={sheet.W}
+                            sheetH={sheet.H}
+                            kerf={3}
+                            className="max-w-full"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-center mt-2 text-sm text-muted-foreground">
+                        Sheet {index + 1} - {sheet.waste.toFixed(1)}% waste
+                      </div>
+                    </section>
+                  ))}
                 </div>
               </div>
             </>

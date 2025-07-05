@@ -40,6 +40,10 @@ export function PartsTable() {
 
   return (
     <div className="space-y-3">
+      <div className="text-sm text-muted-foreground">
+        Enter part sizes below (mm)
+      </div>
+      
       <div className="flex gap-2">
         <Button onClick={addPart} size="sm" className="flex-1">
           <Plus className="h-3 w-3 mr-1" />
@@ -49,6 +53,14 @@ export function PartsTable() {
           <Upload className="h-3 w-3 mr-1" />
           CSV
         </Button>
+      </div>
+
+      {/* Header Labels */}
+      <div className="grid grid-cols-4 gap-1 text-xs font-medium text-muted-foreground px-1">
+        <span>Label</span>
+        <span>Width</span>
+        <span>Height</span>
+        <span>Qty</span>
       </div>
 
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
@@ -66,6 +78,8 @@ export function PartsTable() {
               type="number"
               placeholder="W"
               className="h-8 text-xs"
+              min="1"
+              required
             />
             <Input
               value={part.h}
@@ -73,6 +87,8 @@ export function PartsTable() {
               type="number"
               placeholder="H"
               className="h-8 text-xs"
+              min="1"
+              required
             />
             <div className="flex gap-1">
               <Input
