@@ -20,7 +20,7 @@ import { Menu } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
-  const { user, isPro } = useAuth();
+  const { user, isPro, loading } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Hide header on workbench route
@@ -68,7 +68,9 @@ export function Header() {
 
         {/* Auth Section */}
         <div className="hidden md:flex items-center space-x-4">
-          {user ? (
+          {loading ? (
+            <div className="w-20 h-9 bg-muted animate-pulse rounded" />
+          ) : user ? (
             <div className="flex items-center space-x-2">
               {isPro && (
                 <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -114,7 +116,9 @@ export function Header() {
               ))}
               
               <div className="pt-4 border-t space-y-4">
-                {user ? (
+                {loading ? (
+                  <div className="h-9 bg-muted animate-pulse rounded" />
+                ) : user ? (
                   <div className="space-y-2">
                     {isPro && (
                       <Badge variant="secondary" className="bg-green-100 text-green-800">

@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, X, Upload, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, X, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { demoWorkbenchParts } from '@/lib/demoParts'
-import { createPart, getParts, updatePart, deletePart } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
 
 interface Part {
   id: string
@@ -16,141 +14,28 @@ interface Part {
   label: string
 }
 
-interface PartsTableProps {
-  projectId?: string
-}
-
-export function PartsTable({ projectId }: PartsTableProps) {
+export function PartsTable() {
   const [parts, setParts] = useState<Part[]>(demoWorkbenchParts)
-  const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState<string | null>(null)
-  const { user } = useAuth()
 
-  // Load parts from database when projectId is available
-  useEffect(() => {
-    if (projectId && user && !user.is_anonymous) {
-      loadParts()
-    }
-  }, [projectId, user])
-
-  const loadParts = async () => {
-    if (!projectId) return
-    
-    try {
-      setLoading(true)
-      const dbParts = await getParts(projectId)
-      
-      // Convert database parts to component format
-      const convertedParts: Part[] = dbParts.map(part => ({
-        id: part.id,
-        w: part.width_mm,
-        h: part.height_mm,
-        qty: part.qty,
-        label: part.label || `Part ${part.id.slice(-4)}`
-      }))
-      
-      setParts(convertedParts)
-    } catch (error) {
-      console.error('Error loading parts:', error)
-      // Keep demo data if loading fails
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const addPart = async () => {
-    console.log('Adding part:', { projectId, user: user?.id, isAnonymous: user?.is_anonymous })
-    
-    const newLocalPart: Part = {
-      id: `temp-${Date.now()}`,
+  const addPart = () => {
+    const newPart: Part = {
+      id: `part-${Date.now()}`,
       w: 100,
       h: 100,
       qty: 1,
       label: 'New Part'
     }
-
-    // Add locally first for immediate UI feedback
-    setParts(prev => [...prev, newLocalPart])
-
-    // Save to database if we have a project
-    if (projectId && user && !user.is_anonymous) {
-      try {
-        console.log('Saving part to database:', newLocalPart)
-        setSaving(newLocalPart.id)
-        const dbPart = await createPart(projectId, {
-          width_mm: newLocalPart.w,
-          height_mm: newLocalPart.h,
-          qty: newLocalPart.qty,
-          label: newLocalPart.label
-        })
-        console.log('Part saved to database:', dbPart)
-
-        // Update with real database ID
-        setParts(prev => prev.map(part => 
-          part.id === newLocalPart.id 
-            ? { ...part, id: dbPart.id }
-            : part
-        ))
-      } catch (error) {
-        console.error('Error saving part:', error)
-        console.error('Error details:', JSON.stringify(error, null, 2))
-        const errorMessage = error instanceof Error ? error.message : 
-                            (error as any)?.message || 
-                            JSON.stringify(error, null, 2)
-        alert(`Failed to save part: ${errorMessage}`)
-        // Remove the part if saving failed
-        setParts(prev => prev.filter(part => part.id !== newLocalPart.id))
-      } finally {
-        setSaving(null)
-      }
-    } else {
-      console.log('Not saving to database - no project or user not authenticated')
-    }
+    setParts([...parts, newPart])
   }
 
-  const removePart = async (id: string) => {
-    // Remove locally first for immediate UI feedback
-    setParts(prev => prev.filter(part => part.id !== id))
-
-    // Delete from database if it's a real part
-    if (projectId && user && !user.is_anonymous && !id.startsWith('temp-')) {
-      try {
-        await deletePart(id)
-      } catch (error) {
-        console.error('Error deleting part:', error)
-        // Reload parts to restore state
-        await loadParts()
-      }
-    }
+  const removePart = (id: string) => {
+    setParts(parts.filter(part => part.id !== id))
   }
 
-  const updatePartField = async (id: string, field: keyof Part, value: string | number) => {
-    // Update locally first for immediate UI feedback
-    setParts(prev => prev.map(part => 
+  const updatePart = (id: string, field: keyof Part, value: string | number) => {
+    setParts(parts.map(part => 
       part.id === id ? { ...part, [field]: value } : part
     ))
-
-    // Save to database if it's a real part
-    if (projectId && user && !user.is_anonymous && !id.startsWith('temp-')) {
-      try {
-        setSaving(id)
-        
-        // Convert UI fields to database fields
-        const dbUpdates: any = {}
-        if (field === 'w') dbUpdates.width_mm = Number(value)
-        else if (field === 'h') dbUpdates.height_mm = Number(value)
-        else if (field === 'qty') dbUpdates.qty = Number(value)
-        else if (field === 'label') dbUpdates.label = String(value)
-
-        await updatePart(id, dbUpdates)
-      } catch (error) {
-        console.error('Error updating part:', error)
-        // Reload parts to restore state
-        await loadParts()
-      } finally {
-        setSaving(null)
-      }
-    }
   }
 
   return (
@@ -160,12 +45,8 @@ export function PartsTable({ projectId }: PartsTableProps) {
       </div>
       
       <div className="flex gap-2">
-        <Button onClick={addPart} size="sm" className="flex-1" disabled={loading}>
-          {loading ? (
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-          ) : (
-            <Plus className="h-3 w-3 mr-1" />
-          )}
+        <Button onClick={addPart} size="sm" className="flex-1">
+          <Plus className="h-3 w-3 mr-1" />
           Add
         </Button>
         <Button variant="outline" size="sm" className="flex-1">
@@ -187,53 +68,44 @@ export function PartsTable({ projectId }: PartsTableProps) {
           <div key={part.id} className="grid grid-cols-4 gap-1 items-center text-xs">
             <Input
               value={part.label}
-              onChange={(e) => updatePartField(part.id, 'label', e.target.value)}
+              onChange={(e) => updatePart(part.id, 'label', e.target.value)}
               placeholder="Label"
               className="h-8 text-xs"
-              disabled={saving === part.id}
             />
             <Input
               value={part.w}
-              onChange={(e) => updatePartField(part.id, 'w', parseInt(e.target.value) || 0)}
+              onChange={(e) => updatePart(part.id, 'w', parseInt(e.target.value) || 0)}
               type="number"
               placeholder="W"
               className="h-8 text-xs"
               min="1"
               required
-              disabled={saving === part.id}
             />
             <Input
               value={part.h}
-              onChange={(e) => updatePartField(part.id, 'h', parseInt(e.target.value) || 0)}
+              onChange={(e) => updatePart(part.id, 'h', parseInt(e.target.value) || 0)}
               type="number"
               placeholder="H"
               className="h-8 text-xs"
               min="1"
               required
-              disabled={saving === part.id}
             />
             <div className="flex gap-1">
               <Input
                 value={part.qty}
-                onChange={(e) => updatePartField(part.id, 'qty', parseInt(e.target.value) || 1)}
+                onChange={(e) => updatePart(part.id, 'qty', parseInt(e.target.value) || 1)}
                 type="number"
                 placeholder="Q"
                 className="h-8 text-xs flex-1"
                 min="1"
-                disabled={saving === part.id}
               />
               <Button
                 onClick={() => removePart(part.id)}
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0"
-                disabled={saving === part.id}
               >
-                {saving === part.id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <X className="h-3 w-3" />
-                )}
+                <X className="h-3 w-3" />
               </Button>
             </div>
           </div>
