@@ -2,14 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
+} from '@/components/ui/navigation-menu';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
+import { Menu } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
   const { user, isPro } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Hide header on workbench route
   if (pathname === '/workbench') {
@@ -36,30 +45,33 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                pathname === item.href
-                  ? 'text-foreground'
-                  : 'text-muted-foreground'
-              }`}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+        <NavigationMenu className="hidden md:flex">
+          <NavigationMenuList>
+            {navigation.map((item) => (
+              <NavigationMenuItem key={item.name}>
+                <Link href={item.href} legacyBehavior passHref>
+                  <NavigationMenuLink 
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      pathname === item.href && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    {item.name}
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
 
         {/* Auth Section */}
         <div className="hidden md:flex items-center space-x-4">
           {user ? (
             <div className="flex items-center space-x-2">
               {isPro && (
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
                   Pro
-                </span>
+                </Badge>
               )}
               <Link href="/account">
                 <Button variant="outline" size="sm">
@@ -74,76 +86,57 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile menu button */}
-        <button
-          className="md:hidden p-2"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {isMenuOpen ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            )}
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <div className="md:hidden border-t bg-background">
-          <div className="container py-4 space-y-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block text-sm font-medium text-muted-foreground hover:text-primary"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
-            <div className="pt-4 border-t">
-              {user ? (
-                <div className="space-y-2">
-                  {isPro && (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                      Pro Account
-                    </span>
+        {/* Mobile Navigation */}
+        <Sheet>
+          <SheetTrigger asChild className="md:hidden">
+            <Button variant="ghost" size="sm">
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-80">
+            <div className="flex flex-col space-y-4 mt-8">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary p-2 rounded-md",
+                    pathname === item.href
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground'
                   )}
-                  <Link href="/account" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      Account
+                >
+                  {item.name}
+                </Link>
+              ))}
+              
+              <div className="pt-4 border-t space-y-4">
+                {user ? (
+                  <div className="space-y-2">
+                    {isPro && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        Pro Account
+                      </Badge>
+                    )}
+                    <Link href="/account">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Account
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <Link href="/account">
+                    <Button size="sm" className="w-full">
+                      Sign In
                     </Button>
                   </Link>
-                </div>
-              ) : (
-                <Link href="/account" onClick={() => setIsMenuOpen(false)}>
-                  <Button size="sm" className="w-full">
-                    Sign In
-                  </Button>
-                </Link>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </SheetContent>
+        </Sheet>
+      </div>
     </header>
   );
 }

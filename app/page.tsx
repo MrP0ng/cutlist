@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getAllPosts } from '@/lib/posts'
 import Link from 'next/link'
 
@@ -103,24 +104,28 @@ export default function Home() {
 
             <div className="grid md:grid-cols-3 gap-8">
               {recentPosts.map((post) => (
-                <article key={post.slug} className="bg-white dark:bg-gray-800 rounded-lg border p-6 hover:shadow-lg transition-shadow">
-                  <h3 className="text-xl font-semibold mb-2">
-                    <Link href={`/blog/${post.slug}`} className="hover:text-blue-600 dark:hover:text-blue-400">
-                      {post.title}
-                    </Link>
-                  </h3>
-                  {post.excerpt && (
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">
-                      {post.excerpt}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                    <span>{new Date(post.date).toLocaleDateString()}</span>
-                    <Link href={`/blog/${post.slug}`} className="text-blue-600 dark:text-blue-400 hover:underline">
-                      Read more →
-                    </Link>
-                  </div>
-                </article>
+                <Card key={post.slug} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="text-xl">
+                      <Link href={`/blog/${post.slug}`} className="hover:text-blue-600 dark:hover:text-blue-400">
+                        {post.title}
+                      </Link>
+                    </CardTitle>
+                    {post.excerpt && (
+                      <CardDescription>
+                        {post.excerpt}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{new Date(post.date).toLocaleDateString()}</span>
+                      <Link href={`/blog/${post.slug}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+                        Read more →
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
