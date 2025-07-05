@@ -74,24 +74,24 @@ export interface Database {
         Row: {
           id: string
           project_id: string
-          w_mm: number
-          h_mm: number
+          width_mm: number
+          height_mm: number
           qty: number
           label: string | null
         }
         Insert: {
           id?: string
           project_id: string
-          w_mm: number
-          h_mm: number
+          width_mm: number
+          height_mm: number
           qty?: number
           label?: string | null
         }
         Update: {
           id?: string
           project_id?: string
-          w_mm?: number
-          h_mm?: number
+          width_mm?: number
+          height_mm?: number
           qty?: number
           label?: string | null
         }
@@ -123,8 +123,8 @@ export const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     auth: {
-      persistSession: false, // New anonymous session each tab
-      autoRefreshToken: false,
+      persistSession: true, // Keep sessions across browser refreshes
+      autoRefreshToken: true, // Auto refresh tokens
     },
   }
 )
@@ -194,6 +194,232 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut()
   if (error) {
     console.error('Error signing out:', error)
+    throw error
+  }
+}
+
+// Project CRUD operations
+export async function createProject(name?: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    throw new Error('User must be authenticated to create projects')
+  }
+
+  const { data, error } = await supabase
+    .from('projects')
+    .insert([{ 
+      name: name || 'Untitled Project',
+      owner: user.id
+    }])
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error creating project:', error)
+    throw error
+  }
+  
+  return data
+}
+
+export async function getProjects() {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Error fetching projects:', error)
+    throw error
+  }
+  
+  return data
+}
+
+export async function updateProject(id: string, updates: { name?: string }) {
+  const { data, error } = await supabase
+    .from('projects')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error updating project:', error)
+    throw error
+  }
+  
+  return data
+}
+
+export async function deleteProject(id: string) {
+  const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    console.error('Error deleting project:', error)
+    throw error
+  }
+}
+
+// Sheet CRUD operations
+export async function createSheet(projectId: string, sheet: {
+  material?: string
+  length_mm: number
+  width_mm: number
+  thickness_mm?: number
+}) {
+  console.log('Creating sheet with data:', { projectId, sheet })
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  console.log('Current user:', user?.id)
+  
+  const { data, error } = await supabase
+    .from('sheets')
+    .insert([{ 
+      project_id: projectId,
+      ...sheet
+    }])
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error creating sheet:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
+    throw error
+  }
+  
+  console.log('Sheet created successfully:', data)
+  return data
+}
+
+export async function getSheets(projectId: string) {
+  const { data, error } = await supabase
+    .from('sheets')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Error fetching sheets:', error)
+    throw error
+  }
+  
+  return data
+}
+
+export async function updateSheet(id: string, updates: {
+  material?: string
+  length_mm?: number
+  width_mm?: number
+  thickness_mm?: number
+}) {
+  const { data, error } = await supabase
+    .from('sheets')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error updating sheet:', error)
+    throw error
+  }
+  
+  return data
+}
+
+export async function deleteSheet(id: string) {
+  const { error } = await supabase
+    .from('sheets')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    console.error('Error deleting sheet:', error)
+    throw error
+  }
+}
+
+// Part CRUD operations
+export async function createPart(projectId: string, part: {
+  width_mm: number
+  height_mm: number
+  qty?: number
+  label?: string
+}) {
+  console.log('Creating part with data:', { projectId, part })
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  console.log('Current user:', user?.id)
+  
+  const { data, error } = await supabase
+    .from('parts')
+    .insert([{ 
+      project_id: projectId,
+      qty: 1,
+      ...part
+    }])
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error creating part:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
+    throw error
+  }
+  
+  console.log('Part created successfully:', data)
+  return data
+}
+
+export async function getParts(projectId: string) {
+  const { data, error } = await supabase
+    .from('parts')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('id', { ascending: true })
+  
+  if (error) {
+    console.error('Error fetching parts:', error)
+    throw error
+  }
+  
+  return data
+}
+
+export async function updatePart(id: string, updates: {
+  width_mm?: number
+  height_mm?: number
+  qty?: number
+  label?: string
+}) {
+  const { data, error } = await supabase
+    .from('parts')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Error updating part:', error)
+    throw error
+  }
+  
+  return data
+}
+
+export async function deletePart(id: string) {
+  const { error } = await supabase
+    .from('parts')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    console.error('Error deleting part:', error)
     throw error
   }
 }

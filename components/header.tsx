@@ -52,15 +52,14 @@ export function Header() {
           <NavigationMenuList>
             {navigation.map((item) => (
               <NavigationMenuItem key={item.name}>
-                <Link href={item.href} legacyBehavior passHref>
-                  <NavigationMenuLink 
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      pathname === item.href && "bg-accent text-accent-foreground"
-                    )}
-                  >
-                    {item.name}
-                  </NavigationMenuLink>
+                <Link 
+                  href={item.href}
+                  className={cn(
+                    navigationMenuTriggerStyle(),
+                    pathname === item.href && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  {item.name}
                 </Link>
               </NavigationMenuItem>
             ))}
