@@ -4,12 +4,15 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { AuthModal } from '@/components/auth-modal';
+import { signOut } from '@/lib/supabase';
 import Link from 'next/link';
 
 function AccountContent() {
-  const { user, usage, isPro, loading } = useAuth();
+  const { user, usage, isPro, loading, isAnonymous } = useAuth();
   const searchParams = useSearchParams();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('success')) {
@@ -19,6 +22,15 @@ function AccountContent() {
       return () => clearTimeout(timer);
     }
   }, [searchParams]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // The user will be redirected to anonymous state automatically
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -70,6 +82,62 @@ function AccountContent() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
+          {/* Authentication Status */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Authentication
+            </h2>
+            
+            <div className="space-y-4">
+              {isAnonymous ? (
+                <>
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center">
+                      <svg className="h-5 w-5 text-yellow-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-sm font-medium text-yellow-800">Anonymous Session</h3>
+                        <p className="text-sm text-yellow-700">
+                          Sign in to save your projects and access them from any device.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => setAuthModalOpen(true)}
+                    className="w-full"
+                  >
+                    Sign In / Sign Up
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center">
+                      <svg className="h-5 w-5 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-sm font-medium text-green-800">Signed In</h3>
+                        <p className="text-sm text-green-700">
+                          {user?.email ? `Signed in as ${user.email}` : 'You are signed in with a permanent account.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline"
+                    onClick={handleSignOut}
+                    className="w-full"
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* Account Status */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -199,12 +267,42 @@ function AccountContent() {
           </div>
         </div>
 
+        {/* Auth Management */}
+        <div className="mt-8 bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Auth Management
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Email:</span>
+              <span className="text-gray-900">{user?.email ?? 'N/A'}</span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Password:</span>
+              <span className="text-gray-900">********</span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <Button
+              onClick={() => signOut()}
+              className="w-full bg-red-600 hover:bg-red-700"
+            >
+              Sign Out
+            </Button>
+          </div>
+        </div>
+
         <div className="mt-8 text-center">
           <Link href="/workbench" className="text-blue-600 hover:text-blue-700">
             ← Back to Workbench
           </Link>
         </div>
       </div>
+      
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </div>
   );
 }
